@@ -6,12 +6,19 @@ const poseImage = document.getElementById('poseImage');
 
 let detector, rafId;
 let currentPoseIndex = 0;
-const totalPoses = 8;
-const similarityThreshold = 0.85;
+const totalPoses = 7; // ✅ 改成 7 個動作
+const similarityThreshold = 0.7; // ✅ 判定更寬鬆
 let standardKeypointsList = [];
 let poseOrder = [];
 
-// 隨機打亂 1~8
+// ✅ 只顯示這些點（上半身）
+const shownKeypoints = [
+  "nose", "left_eye", "right_eye",
+  "left_ear", "right_ear",
+  "left_shoulder", "right_shoulder",
+  "left_elbow", "right_elbow"
+];
+
 function shufflePoseOrder() {
   poseOrder = Array.from({ length: totalPoses }, (_, i) => i + 1);
   for (let i = poseOrder.length - 1; i > 0; i--) {
@@ -21,7 +28,6 @@ function shufflePoseOrder() {
   console.log("本次順序：", poseOrder);
 }
 
-// 嘗試載入 png 或 PNG
 function resolvePoseImageName(base) {
   const png = `poses/${base}.png`;
   const PNG = `poses/${base}.PNG`;
@@ -33,7 +39,6 @@ function resolvePoseImageName(base) {
   });
 }
 
-// 載入所有 pose JSON 和配圖
 async function loadStandardKeypoints() {
   for (const i of poseOrder) {
     const res = await fetch(`poses/pose${i}.json`);
@@ -47,12 +52,11 @@ async function loadStandardKeypoints() {
   }
 }
 
-// 畫骨架
 function drawKeypoints(kps, color, radius, alpha) {
   ctx.globalAlpha = alpha;
   ctx.fillStyle = color;
   kps.forEach(kp => {
-    if (kp.score > 0.4) {
+    if (kp.score > 0.4 && shownKeypoints.includes(kp.name)) {
       ctx.beginPath();
       ctx.arc(kp.x, kp.y, radius, 0, 2 * Math.PI);
       ctx.fill();
@@ -61,11 +65,13 @@ function drawKeypoints(kps, color, radius, alpha) {
   ctx.globalAlpha = 1.0;
 }
 
-// 計算相似度
 function compareKeypoints(a, b) {
   let sum = 0, count = 0;
   for (let i = 0; i < a.length && i < b.length; i++) {
-    if (a[i].score > 0.4 && b[i].score > 0.4) {
+    if (
+      a[i].score > 0.4 && b[i].score > 0.4 &&
+      shownKeypoints.includes(a[i].name)
+    ) {
       const dx = a[i].x - b[i].x;
       const dy = a[i].y - b[i].y;
       sum += Math.hypot(dx, dy);
@@ -76,7 +82,6 @@ function compareKeypoints(a, b) {
   return 1 / (1 + (sum / count) / 100);
 }
 
-// 主偵測流程
 async function detect() {
   const result = await detector.estimatePoses(video);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -105,14 +110,13 @@ async function detect() {
   rafId = requestAnimationFrame(detect);
 }
 
-// 啟動流程
 async function startGame() {
   startBtn.disabled = true;
   startBtn.style.display = 'none';
 
   const stream = await navigator.mediaDevices.getUserMedia({
     video: {
-      facingMode: { exact: 'environment' }, // ✅ 使用主鏡頭
+      facingMode: { exact: 'environment' },
       width: { ideal: 640 },
       height: { ideal: 480 }
     },
