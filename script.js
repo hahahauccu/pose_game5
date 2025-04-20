@@ -6,18 +6,10 @@ const poseImage = document.getElementById('poseImage');
 
 let detector, rafId;
 let currentPoseIndex = 0;
-const totalPoses = 7; // ✅ 改成 7 個動作
-const similarityThreshold = 0.7; // ✅ 判定更寬鬆
+const totalPoses = 7;
+const similarityThreshold = 0.7;
 let standardKeypointsList = [];
 let poseOrder = [];
-
-// ✅ 只顯示這些點（上半身）
-const shownKeypoints = [
-  "nose", "left_eye", "right_eye",
-  "left_ear", "right_ear",
-  "left_shoulder", "right_shoulder",
-  "left_elbow", "right_elbow"
-];
 
 function shufflePoseOrder() {
   poseOrder = Array.from({ length: totalPoses }, (_, i) => i + 1);
@@ -56,7 +48,7 @@ function drawKeypoints(kps, color, radius, alpha) {
   ctx.globalAlpha = alpha;
   ctx.fillStyle = color;
   kps.forEach(kp => {
-    if (kp.score > 0.4 && shownKeypoints.includes(kp.name)) {
+    if (kp.score > 0.4) {
       ctx.beginPath();
       ctx.arc(kp.x, kp.y, radius, 0, 2 * Math.PI);
       ctx.fill();
@@ -68,10 +60,7 @@ function drawKeypoints(kps, color, radius, alpha) {
 function compareKeypoints(a, b) {
   let sum = 0, count = 0;
   for (let i = 0; i < a.length && i < b.length; i++) {
-    if (
-      a[i].score > 0.4 && b[i].score > 0.4 &&
-      shownKeypoints.includes(a[i].name)
-    ) {
+    if (a[i].score > 0.4 && b[i].score > 0.4) {
       const dx = a[i].x - b[i].x;
       const dy = a[i].y - b[i].y;
       sum += Math.hypot(dx, dy);
@@ -128,7 +117,6 @@ async function startGame() {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
 
-  // ✅ 鏡像翻轉處理
   ctx.setTransform(-1, 0, 0, 1, canvas.width, 0);
 
   try {
@@ -154,7 +142,6 @@ async function startGame() {
 
 startBtn.addEventListener("click", startGame);
 
-// ✅ 點一下畫面也能跳下一動作
 document.body.addEventListener('click', () => {
   if (!standardKeypointsList.length) return;
 
