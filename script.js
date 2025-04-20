@@ -7,10 +7,11 @@ const poseImage = document.getElementById('poseImage');
 let detector, rafId;
 let currentPoseIndex = 0;
 const totalPoses = 7;
-const similarityThreshold = 0.7;
+const similarityThreshold = 0.85;
 let standardKeypointsList = [];
 let poseOrder = [];
 
+// 隨機打亂 1~8
 function shufflePoseOrder() {
   poseOrder = Array.from({ length: totalPoses }, (_, i) => i + 1);
   for (let i = poseOrder.length - 1; i > 0; i--) {
@@ -20,6 +21,7 @@ function shufflePoseOrder() {
   console.log("本次順序：", poseOrder);
 }
 
+// 嘗試載入 png 或 PNG
 function resolvePoseImageName(base) {
   const png = `poses/${base}.png`;
   const PNG = `poses/${base}.PNG`;
@@ -31,6 +33,7 @@ function resolvePoseImageName(base) {
   });
 }
 
+// 載入所有 pose JSON 和配圖
 async function loadStandardKeypoints() {
   for (const i of poseOrder) {
     const res = await fetch(`poses/pose${i}.json`);
@@ -44,6 +47,7 @@ async function loadStandardKeypoints() {
   }
 }
 
+// 畫骨架
 function drawKeypoints(kps, color, radius, alpha) {
   ctx.globalAlpha = alpha;
   ctx.fillStyle = color;
@@ -57,6 +61,7 @@ function drawKeypoints(kps, color, radius, alpha) {
   ctx.globalAlpha = 1.0;
 }
 
+// 計算相似度
 function compareKeypoints(a, b) {
   let sum = 0, count = 0;
   for (let i = 0; i < a.length && i < b.length; i++) {
@@ -71,6 +76,7 @@ function compareKeypoints(a, b) {
   return 1 / (1 + (sum / count) / 100);
 }
 
+// 主偵測流程
 async function detect() {
   const result = await detector.estimatePoses(video);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -99,13 +105,14 @@ async function detect() {
   rafId = requestAnimationFrame(detect);
 }
 
+// 啟動流程
 async function startGame() {
   startBtn.disabled = true;
   startBtn.style.display = 'none';
 
   const stream = await navigator.mediaDevices.getUserMedia({
     video: {
-      facingMode: { exact: 'environment' },
+      facingMode: { exact: 'environment' }, // ✅ 使用主鏡頭
       width: { ideal: 640 },
       height: { ideal: 480 }
     },
@@ -117,6 +124,7 @@ async function startGame() {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
 
+  // ✅ 鏡像翻轉處理
   ctx.setTransform(-1, 0, 0, 1, canvas.width, 0);
 
   try {
@@ -142,6 +150,7 @@ async function startGame() {
 
 startBtn.addEventListener("click", startGame);
 
+// ✅ 點一下畫面也能跳下一動作
 document.body.addEventListener('click', () => {
   if (!standardKeypointsList.length) return;
 
